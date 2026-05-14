@@ -1,0 +1,7 @@
+# Python dependencies for the GStreamer stitching benchmark
+# Used for JSON processing, S3 interactions, and utility functions
+
+requests==2.31.0
+jq==1.6.0
+boto3==1.34.0
+python-dateutil==2.8.2

@@ -1,0 +1,28 @@
+{
+  "input": {
+    "video_urls": [
+      "https://vrinsitu-aaron-bucket.s3.amazonaws.com/cloudTesting/origin_1.mp4",
+      "https://vrinsitu-aaron-bucket.s3.amazonaws.com/cloudTesting/origin_2.mp4",
+      "https://vrinsitu-aaron-bucket.s3.amazonaws.com/cloudTesting/origin_3.mp4",
+      "https://vrinsitu-aaron-bucket.s3.amazonaws.com/cloudTesting/origin_4.mp4"
+    ],
+    "resolution": "3840x2160",
+    "format": "H.264",
+    "calibration_file": "https://vrinsitu-aaron-bucket.s3.amazonaws.com/cloudTesting/TestTitan4LensV2.pts"
+  },
+  "custom_plugin": {
+    "url": "https://vrinsitu-aaron-bucket.s3.amazonaws.com/cloudTesting/libgldmdstitcher.so",
+    "install_path": "./plugins/"
+  },
+  "output_resolutions": [
+    {"name": "8k", "width": 7680, "height": 4320},
+    {"name": "6k", "width": 6400, "height": 3600},
+    {"name": "4k", "width": 3840, "height": 2160},
+    {"name": "2k", "width": 2560, "height": 1440},
+    {"name": "1080p", "width": 1920, "height": 1080}
+  ],
+  "benchmark": {
+    "duration_seconds": 120,
+    "warmup_seconds": 10
+  }
+}
