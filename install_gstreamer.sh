@@ -63,26 +63,7 @@ case $OS in
             gstreamer1.0-tools \
             libgstrtspserver-1.0-0
         
-        # Install NVIDIA Video Codec SDK
-        echo "Installing NVIDIA Video Codec SDK..."
-        sudo apt-get install -y \
-            nvidia-cuda-toolkit
         
-        # Add GStreamer NVIDIA plugins repository
-        echo "Adding GStreamer NVIDIA plugins repository..."
-        sudo add-apt-repository -y ppa:gstreamer-developers/ppa
-        sudo apt-get update
-        sudo apt-get install -y \
-            gstreamer1.0-nvcodec \
-            gstreamer1.0-nvtoolbox
-        
-        # Install OpenGL support
-        echo "Installing OpenGL support..."
-        sudo apt-get install -y \
-            libgl1-mesa-dev \
-            libglu1-mesa-dev \
-            freeglut3-dev \
-            mesa-common-dev
         
         ;;
     centos|rhel)
