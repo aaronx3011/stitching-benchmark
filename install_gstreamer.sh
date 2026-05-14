@@ -66,7 +66,6 @@ case $OS in
         # Install NVIDIA Video Codec SDK
         echo "Installing NVIDIA Video Codec SDK..."
         sudo apt-get install -y \
-            nvidia-video-codec-sdk \
             nvidia-cuda-toolkit
         
         # Add GStreamer NVIDIA plugins repository
