@@ -62,35 +62,34 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_DIR="results/${TARGET_RESOLUTION}_${TIMESTAMP}"
 mkdir -p "$RESULTS_DIR"
 
+# Create HLS output subdirectories
+mkdir -p "${RESULTS_DIR}/high" "${RESULTS_DIR}/low"
+
 echo "Results will be saved to: $RESULTS_DIR"
 
-# Build GStreamer pipeline
+# Build GStreamer pipeline (HLS multi-resolution with filesrc mp4 inputs)
 PIPELINE=""
 
-# Input sources (4x 4K videos)
-for i in {1..4}; do
-    if [ $i -gt 1 ]; then
-        PIPELINE+=" "
-    fi
-    PIPELINE+="filesrc location=input_videos/video_${i}.mp4 ! qtdemux name=demux${i} demux${i}.video ! queue ! nvv4l2decoder ! videoconvert"
-done
-
-# Add custom stitching element
-PIPELINE+=" ! mux.sink_0 \
-           filesrc location=input_videos/video_1.mp4 ! qtdemux name=demux1 demux1.audio ! queue ! aacparse ! avdec_aac \
-           filesrc location=input_videos/video_2.mp4 ! qtdemux name=demux2 demux2.audio ! queue ! aacparse ! avdec_aac \
-           filesrc location=input_videos/video_3.mp4 ! qtdemux name=demux3 demux3.audio ! queue ! aacparse ! avdec_aac \
-           filesrc location=input_videos/video_4.mp4 ! qtdemux name=demux4 demux4.audio ! queue ! aacparse ! avdec_aac"
-
-# Custom stitching plugin with calibration file
+# Calibration argument for stitcher
+CALIB_ARG=""
 if [ -f "calibration.pts" ]; then
-    PIPELINE+=" ! customstitch name=stitcher width=${RES_WIDTH} height=${RES_HEIGHT} calibration=calibration.pts"
-else
-    PIPELINE+=" ! customstitch name=stitcher width=${RES_WIDTH} height=${RES_HEIGHT}"
+    CALIB_ARG="calibration=calibration.pts"
 fi
 
-# Output encoding
-PIPELINE+=" ! nvvidconv ! video/x-raw(memory:NVMM), format=I420, width=${RES_WIDTH}, height=${RES_HEIGHT} ! nvv4l2h265enc bitrate=20000000 ! h265parse ! matroskamux ! filesink location=${RESULTS_DIR}/output_${TARGET_RESOLUTION}.mkv"
+# Input sources (4x 4K videos) + stitching + HLS multi-resolution output
+PIPELINE+="filesrc location=input_videos/video_1.mp4 ! qtdemux name=demux1 demux1.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
+PIPELINE+="mix. filesrc location=input_videos/video_2.mp4 ! qtdemux name=demux2 demux2.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
+PIPELINE+="mix. filesrc location=input_videos/video_3.mp4 ! qtdemux name=demux3 demux3.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
+PIPELINE+="mix. filesrc location=input_videos/video_4.mp4 ! qtdemux name=demux4 demux4.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
+PIPELINE+="mix. gldmdstitcher name=mix client=vrinsitu1 ${CALIB_ARG} crop-left=-90 crop-right=90 crop-bottom=-45 crop-top=45 ! video/x-raw(memory:glmemory),format=rgba,width=7680,height=4320 ! "
+PIPELINE+="tee name=t t. ! queue ! nvh265enc preset=1 ! h265parse ! queue ! "
+PIPELINE+="mpegtsmux name=mux0 ! hlssink target-duration=15 location=${RESULTS_DIR}/high/8k_%05d.ts playlist-location=${RESULTS_DIR}/high/8k.m3u8 "
+PIPELINE+="t. ! queue ! glcolorscale ! video/x-raw(memory:glmemory),width=3840,height=2160 ! nvh265enc preset=1 ! h265parse ! "
+PIPELINE+="mpegtsmux name=mux1 ! hlssink target-duration=15 location=${RESULTS_DIR}/high/4k_%05d.ts playlist-location=${RESULTS_DIR}/high/4k.m3u8 "
+PIPELINE+="t. ! queue ! glcolorscale ! video/x-raw(memory:glmemory),width=2560,height=1440 ! nvh264enc preset=1 ! h264parse ! "
+PIPELINE+="mpegtsmux name=mux2 ! hlssink target-duration=15 location=${RESULTS_DIR}/low/2k_%05d.ts playlist-location=${RESULTS_DIR}/low/2k.m3u8 "
+PIPELINE+="t. ! queue ! glcolorscale ! video/x-raw(memory:glmemory),width=2600,height=900 ! nvh264enc preset=1 ! h264parse ! "
+PIPELINE+="mpegtsmux name=mux3 ! hlssink target-duration=15 location=${RESULTS_DIR}/low/1k_%05d.ts playlist-location=${RESULTS_DIR}/low/1k.m3u8"
 
 echo "GStreamer pipeline:"
 echo "$PIPELINE"
@@ -124,10 +123,14 @@ cat > "${RESULTS_DIR}/metrics.json" << EOF
       "resolution": "3840x2160",
       "format": "H.264"
     },
-    "output_resolution": {
-      "name": "$TARGET_RESOLUTION",
-      "width": $RES_WIDTH,
-      "height": $RES_HEIGHT
+    "output": {
+      "type": "HLS multi-resolution",
+      "streams": [
+        {"name": "8k", "width": 7680, "height": 4320, "codec": "H.265", "path": "${RESULTS_DIR}/high/8k.m3u8"},
+        {"name": "4k", "width": 3840, "height": 2160, "codec": "H.265", "path": "${RESULTS_DIR}/high/4k.m3u8"},
+        {"name": "2k", "width": 2560, "height": 1440, "codec": "H.264", "path": "${RESULTS_DIR}/low/2k.m3u8"},
+        {"name": "1k", "width": 2600, "height": 900, "codec": "H.264", "path": "${RESULTS_DIR}/low/1k.m3u8"}
+      ]
     },
     "metrics": {
       "fps": $FPS,
@@ -142,7 +145,7 @@ EOF
 
 echo "Benchmark completed!"
 echo "Results saved to: ${RESULTS_DIR}/metrics.json"
-echo "Output video saved to: ${RESULTS_DIR}/output_${TARGET_RESOLUTION}.mkv"
+echo "HLS playlists saved to: ${RESULTS_DIR}/high/ (8K, 4K) and ${RESULTS_DIR}/low/ (2K, 1K)"
 echo ""
 echo "Metrics:"
 echo "  FPS: $FPS"

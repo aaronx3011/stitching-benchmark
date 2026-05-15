@@ -34,18 +34,13 @@ echo "=== Step 2: Downloading test videos ==="
 ./download_videos.sh
 
 echo ""
-echo "=== Step 3: Running benchmarks for all output resolutions ==="
+echo "=== Step 3: Running HLS multi-resolution benchmark ==="
 
-# Extract output resolutions from config
-OUTPUT_RESOLUTIONS=$(echo "$CONFIG" | jq -r '.output_resolutions[].name')
-
-for res in $OUTPUT_RESOLUTIONS; do
-    echo "------------------------------------------------------------------"
-    echo "Running benchmark for $res output..."
-    echo "------------------------------------------------------------------"
-    ./run_single_benchmark.sh "$res"
-    echo ""
-done
+echo "------------------------------------------------------------------"
+echo "Running benchmark (all resolutions: 8K H.265, 4K H.265, 2K H.264, 1K H.264)..."
+echo "------------------------------------------------------------------"
+./run_single_benchmark.sh "8k"
+echo ""
 
 echo "=== Benchmark completed successfully! ==="
 echo "Results saved in results/ directory"
