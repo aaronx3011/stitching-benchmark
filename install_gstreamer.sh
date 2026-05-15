@@ -124,6 +124,9 @@ if [ -f "config.json" ]; then
         
         # Make plugin executable
         chmod +x "${PLUGIN_PATH}"/*.so
+
+        # Install to system GStreamer plugins directory
+        sudo cp "${PLUGIN_PATH}/libgldmdstitcher.so" /usr/lib/x86_64-linux-gnu/gstreamer-1.0/
     fi
 fi
 
