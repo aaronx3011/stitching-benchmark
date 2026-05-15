@@ -56,7 +56,7 @@ for url in $VIDEO_URLS; do
         exit 1
     fi
     
-    filesize=$(stat -f%z "$filename")
+    filesize=$(stat -f%z "$filename" 2>/dev/null || stat -c%s "$filename" 2>/dev/null || wc -c < "$filename")
     echo "Successfully downloaded ${count}/4 (${filesize} bytes)"
 done
 
