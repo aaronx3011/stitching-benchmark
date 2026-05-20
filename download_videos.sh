@@ -3,10 +3,24 @@ set -e
 
 echo "=== Downloading test videos ==="
 
-# Check if jq is installed
+# Install jq if not present
 if ! command -v jq &> /dev/null; then
-    echo "Error: jq is not installed. Please install it first."
-    exit 1
+    echo "jq not found. Attempting to install..."
+    if [[ "$(uname)" == "Darwin" ]]; then
+        if command -v brew &> /dev/null; then
+            brew install jq
+        else
+            echo "Error: Homebrew not found. Please install jq manually: brew install jq"
+            exit 1
+        fi
+    elif command -v apt-get &> /dev/null; then
+        sudo apt-get install -y jq
+    elif command -v yum &> /dev/null; then
+        sudo yum install -y jq
+    else
+        echo "Error: Could not detect package manager. Please install jq manually."
+        exit 1
+    fi
 fi
 
 # Load configuration
@@ -35,6 +49,11 @@ count=0
 for url in $VIDEO_URLS; do
     count=$((count + 1))
     filename="input_videos/video_${count}.mp4"
+    
+    if [ -f "$filename" ]; then
+        echo "Video ${count}/4 already exists, skipping..."
+        continue
+    fi
     
     echo "Downloading video ${count}/4 from $url..."
     

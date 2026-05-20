@@ -73,14 +73,14 @@ PIPELINE=""
 # Calibration argument for stitcher
 CALIB_ARG=""
 if [ -f "calibration.pts" ]; then
-    CALIB_ARG="calibration=calibration.pts"
+    CALIB_ARG="template=calibration.pts"
 fi
 
 # Input sources (4x 4K videos) + stitching + HLS multi-resolution output
-PIPELINE+="filesrc location=input_videos/video_1.mp4 ! qtdemux name=demux1 demux1.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
-PIPELINE+="mix. filesrc location=input_videos/video_2.mp4 ! qtdemux name=demux2 demux2.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
-PIPELINE+="mix. filesrc location=input_videos/video_3.mp4 ! qtdemux name=demux3 demux3.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
-PIPELINE+="mix. filesrc location=input_videos/video_4.mp4 ! qtdemux name=demux4 demux4.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:glmemory) ! glcolorconvert ! video/x-raw(memory:glmemory),format=rgba ! "
+PIPELINE+="filesrc location=input_videos/video_1.mp4 ! qtdemux name=demux1 demux1.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:GLMemory) ! glcolorconvert ! video/x-raw(memory:GLMemory),format=RGBA ! "
+PIPELINE+="mix. filesrc location=input_videos/video_2.mp4 ! qtdemux name=demux2 demux2.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:GLMemory) ! glcolorconvert ! video/x-raw(memory:GLMemory),format=RGBA ! "
+PIPELINE+="mix. filesrc location=input_videos/video_3.mp4 ! qtdemux name=demux3 demux3.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:GLMemory) ! glcolorconvert ! video/x-raw(memory:GLMemory),format=RGBA ! "
+PIPELINE+="mix. filesrc location=input_videos/video_4.mp4 ! qtdemux name=demux4 demux4.video ! queue ! h264parse ! nvh264dec ! video/x-raw(memory:GLMemory) ! glcolorconvert ! video/x-raw(memory:GLMemory),format=RGBA ! "
 PIPELINE+="mix. gldmdstitcher name=mix client=vrinsitu1 ${CALIB_ARG} crop-left=-90 crop-right=90 crop-bottom=-45 crop-top=45 ! video/x-raw(memory:glmemory),format=rgba,width=7680,height=4320 ! "
 PIPELINE+="tee name=t t. ! queue ! nvh265enc preset=1 ! h265parse ! queue ! "
 PIPELINE+="mpegtsmux name=mux0 ! hlssink target-duration=15 location=${RESULTS_DIR}/high/8k_%05d.ts playlist-location=${RESULTS_DIR}/high/8k.m3u8 "
